@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"text/template"
@@ -35,18 +36,35 @@ func getTemplate(filename string) (*template.Template, error) {
 }
 
 func getConfig(filename string) (map[string]interface{}, error) {
-	content, err := loadFile(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Config file load error: [%v]\n", err)
-		return nil, errors.New(fmt.Sprintf("Config file load error: [%v]\n", err))
+	buffer := bytes.NewBuffer([]byte{})
+
+	if filename == "<STDIN>" {
+		info, _ := os.Stdin.Stat()
+		if (info.Mode() & os.ModeCharDevice) == os.ModeCharDevice {
+			return nil, errors.New(fmt.Sprintf("The command is intended to work with pipes\n"))
+		} else if info.Size() > 0 {
+			reader := bufio.NewReader(os.Stdin)
+			for {
+				input, err := reader.ReadString('\n')
+				if err != nil && err == io.EOF {
+					break
+				}
+				buffer.WriteString(input)
+			}
+		}
+	} else {
+		content, err := loadFile(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Config file load error: [%v]\n", err)
+			return nil, errors.New(fmt.Sprintf("Config file load error: [%v]\n", err))
+		}
+		buffer.Write(content)
 	}
 
 	cfg := map[string]interface{}{}
-
-	if err := yaml.Unmarshal(content, &cfg); err != nil {
+	if err := yaml.Unmarshal(buffer.Bytes(), &cfg); err != nil {
 		return nil, errors.New(fmt.Sprintf("Could not parse YAML file: %s\n", err))
 	}
-
 	return cfg, nil
 }
 
@@ -73,7 +91,7 @@ func outResult(filename string, buffer *bytes.Buffer) {
 func main() {
 	check := flag.Bool("check", false, "check mode")
 	tmplFile := flag.String("t", "", "config template")
-	cfgFile := flag.String("c", "settings.dev.yaml", "config template")
+	cfgFile := flag.String("c", "<STDIN>", "config template")
 	output := flag.String("o", "<STDOUT>", "output")
 	flag.Parse()
 
