@@ -1,0 +1,19 @@
+common:
+  mq: {{.Common.Gnats.Host}}:{{.Common.Gnats.Port}}
+  statsite: {{.Common.Statsite.Host}}:{{.Common.Statsite.Port}}
+  auth:
+    public_key: |
+      {{.Common.Auth.PublicKey}}
+    session_token_expiration: {{.Common.Auth.SessionTokenExpiration}}
+
+proxy:
+  debug: {{.ProxyServer.Debug}}
+  status_listen: {{.ProxyServer.StatusChecker.Host}}:{{.ProxyServer.StatusChecker.Port}}
+  logging:
+    {{range $filter, $data := .ProxyServer.Logging}}{{$filter}}:
+      enabled: {{$data.enabled}}
+      type: {{$data.type}}
+      level: {{$data.level}}
+      {{if $data.properties}}properties:{{range $name, $value := $data.properties}}
+        {{$name}}: {{$value}}{{end}}{{end}}
+    {{end}}

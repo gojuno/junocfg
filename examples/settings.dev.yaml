@@ -1,0 +1,60 @@
+Common:
+  Gnats:
+    Host: 127.0.0.1
+    Port: 4222
+  SQS:
+    Host: 127.0.0.1
+    Port: 9324
+  Statsite:
+    Host: 127.0.0.1
+    Port: 8125
+  Auth:
+    PrivateKey: |
+      <TO_GENERATE>
+    PublicKey: |
+      <TO_GENERATE>
+    SessionTokenExpiration: 15m
+
+AuthServer:
+  Debug: false
+  Logging:
+    Filename: /tmp/logs/auth_server.log
+  MySql:
+    Host: 127.0.0.1
+    Port: 3306
+    Database: auth
+    User: <TO_GENERATE>
+    Passwd: <TO_GENERATE>
+    Timeout: 5
+  StatusChecker:
+    Host: 127.0.0.1
+    Port: 10002
+
+ProxyServer:
+  Debug: false
+  Logging:
+    stdout:
+      enabled: true
+      type: console
+      level: INFO
+    file:
+      enabled: true
+      type: file
+      level: DEBUG
+      properties:
+        filename: /tmp/logs/proxy_server.log
+        format: "[%D %T] [%L] (%S) %M"
+        rotate: false
+        maxsize: 0M
+        maxlines: 0K
+        daily: true
+  MySql:
+    Host: 127.0.0.1
+    Port: 3306
+    Database: proxy
+    User: <TO_GENERATE>
+    Passwd: <TO_GENERATE>
+    Timeout: 5
+  StatusChecker:
+    Host: 127.0.0.1
+    Port: 10002
