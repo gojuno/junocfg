@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"text/template"
 
 	"gopkg.in/yaml.v2"
@@ -95,10 +96,6 @@ func main() {
 	output := flag.String("o", "<STDOUT>", "output")
 	flag.Parse()
 
-	if *check {
-		fmt.Fprintf(os.Stderr, "Data check...\n")
-	}
-
 	if *tmplFile == "" {
 		fmt.Fprintf(os.Stderr, "template (-t) file required\n")
 		os.Exit(1)
@@ -120,19 +117,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *check {
-		tmpl = tmpl.Option("missingkey=error")
-	}
-
 	buffer := bytes.NewBuffer([]byte{})
 	if err := tmpl.Execute(buffer, cfg); err != nil {
 		panic(fmt.Sprintf("failed to render template [%s]\n[%s]\n", err, cfg))
 	}
 
 	if *check {
-		// TODO! check output
-		// find <no value> substring
-	} else {
-		outResult(*output, buffer)
+		strOut := strings.Split(buffer.String(), "\n")
+
+		for posInFile, str := range strOut {
+			if i := strings.Index(str, "<no value>"); i != -1 {
+				fmt.Fprintf(os.Stderr, "<no value> at %s#%d:%s\n", *output, posInFile, str)
+			}
+		}
+
+		outYaml := map[string]interface{}{}
+		err = yaml.Unmarshal(buffer.Bytes(), &outYaml)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Not valid output yaml: %s", err.Error())
+		}
 	}
+
+	outResult(*output, buffer)
 }
