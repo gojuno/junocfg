@@ -102,6 +102,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *check {
+		tmpl = tmpl.Option("missingkey=error")
+	}
+
 	buffer := bytes.NewBuffer([]byte{})
 	if err := tmpl.Execute(buffer, cfg); err != nil {
 		panic(fmt.Sprintf("failed to render template [%s]\n[%s]\n", err, cfg))
