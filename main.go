@@ -4,15 +4,17 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"text/template"
 
 	"gopkg.in/yaml.v2"
+
+	"github.com/juno-lab/argparse"
 )
 
 func loadFile(filename string) ([]byte, error) {
@@ -26,7 +28,6 @@ func loadFile(filename string) ([]byte, error) {
 func getTemplate(filename string) (*template.Template, error) {
 	content, err := loadFile(filename)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Template file load error: [%v]\n", err)
 		return nil, errors.New(fmt.Sprintf("Template file load error: [%v]\n", err))
 	}
 	tmpl, err := template.New("template").Parse(string(content))
@@ -56,7 +57,6 @@ func getConfig(filename string) (map[string]interface{}, error) {
 	} else {
 		content, err := loadFile(filename)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Config file load error: [%v]\n", err)
 			return nil, errors.New(fmt.Sprintf("Config file load error: [%v]\n", err))
 		}
 		buffer.Write(content)
@@ -75,8 +75,7 @@ func outResult(filename string, buffer *bytes.Buffer) {
 		f, err := os.Create(filename)
 		defer f.Close()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Output file create error: [%v]\n", err)
-			os.Exit(1)
+			log.Fatalf("Output file create error: [%v]\n", err)
 		}
 		outputBuffer = bufio.NewWriter(f)
 	}
@@ -90,39 +89,44 @@ func outResult(filename string, buffer *bytes.Buffer) {
 }
 
 func main() {
-	check := flag.Bool("check", false, "check mode")
-	tmplFile := flag.String("t", "", "config template")
-	cfgFile := flag.String("c", "<STDIN>", "config template")
-	output := flag.String("o", "<STDOUT>", "output")
-	flag.Parse()
+	parser, _ := argparse.ArgumentParser()
+	parser.AddStringOption("input", "i", "input").Default("<STDIN>")
+	parser.AddStringOption("output", "o", "output").Default("<STDOUT>")
+	parser.AddStringOption("template", "t", "tmpl")
+	parser.AddFlagOption("check", "", "check").Default("false").Action(argparse.SET_TRUE)
 
-	if *tmplFile == "" {
-		fmt.Fprintf(os.Stderr, "template (-t) file required\n")
-		os.Exit(1)
-	}
+	args := parser.ParseArgs()
+
+	// if *tmplFile == "" {
+	// 	fmt.Fprintf(os.Stderr, "template (-t) file required\n")
+	// 	os.Exit(1)
+	// }
 
 	var tmpl *template.Template
 	var cfg map[string]interface{}
 	var err error
 
-	tmpl, err = getTemplate(*tmplFile)
+	tmpl, err = getTemplate(args.AsString("template"))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		os.Exit(1)
+		log.Fatal(err.Error())
 	}
 
-	cfg, err = getConfig(*cfgFile)
+	cfg, err = getConfig(args.AsString("input"))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		os.Exit(1)
+		log.Fatal(err.Error())
+	}
+
+	if args.AsFlag("check") {
+		log.Printf("Data check...\n")
+		tmpl = tmpl.Option("missingkey=error")
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
 	if err := tmpl.Execute(buffer, cfg); err != nil {
-		panic(fmt.Sprintf("failed to render template [%s]\n[%s]\n", err, cfg))
+		log.Fatalf("failed to render template [%s]\n[%s]\n", err, cfg)
 	}
 
-	if *check {
+	if args.AsFlag("check") {
 		strOut := strings.Split(buffer.String(), "\n")
 
 		for posInFile, str := range strOut {
@@ -136,6 +140,10 @@ func main() {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Not valid output yaml: %s", err.Error())
 		}
+		// TODO! check output
+		// find <no value> substring
+	} else {
+		outResult(args.AsString("output"), buffer)
 	}
 
 	outResult(*output, buffer)
