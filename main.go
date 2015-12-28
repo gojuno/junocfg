@@ -37,14 +37,39 @@ func getTemplate(filename string) (*template.Template, error) {
 	return tmpl, nil
 }
 
+func outMode(mode os.FileMode) {
+	flags := map[os.FileMode]string{
+		os.ModeDir:        "os.ModeDir",
+		os.ModeAppend:     "os.ModeAppend",
+		os.ModeExclusive:  "os.ModeExclusive",
+		os.ModeTemporary:  "os.ModeTemporary",
+		os.ModeSymlink:    "os.ModeSymlink",
+		os.ModeDevice:     "os.ModeDevice",
+		os.ModeNamedPipe:  "os.ModeNamedPipe",
+		os.ModeSocket:     "os.ModeSocket",
+		os.ModeSetuid:     "os.ModeSetuid",
+		os.ModeSetgid:     "os.ModeSetgid",
+		os.ModeCharDevice: "os.ModeCharDevice",
+		os.ModeSticky:     "os.ModeSticky",
+	}
+
+	log.Printf("info: %032b", mode)
+	for flag, name := range flags {
+		if (mode & flag) == flag {
+			log.Printf("%s\n", name)
+		}
+	}
+}
+
 func getConfig(filename string) (map[string]interface{}, error) {
 	buffer := bytes.NewBuffer([]byte{})
 
 	if filename == "<STDIN>" {
 		info, _ := os.Stdin.Stat()
+		// outMode(info.Mode())
 		if (info.Mode() & os.ModeCharDevice) == os.ModeCharDevice {
 			return nil, errors.New(fmt.Sprintf("The command is intended to work with pipes\n"))
-		} else if info.Size() > 0 {
+		} else {
 			reader := bufio.NewReader(os.Stdin)
 			for {
 				input, err := reader.ReadString('\n')
@@ -131,7 +156,7 @@ func main() {
 
 		for posInFile, str := range strOut {
 			if i := strings.Index(str, "<no value>"); i != -1 {
-				fmt.Fprintf(os.Stderr, "<no value> at %s#%d:%s\n", *output, posInFile, str)
+				fmt.Fprintf(os.Stderr, "<no value> at %s#%d:%s\n", args.AsString("output"), posInFile, str)
 			}
 		}
 
@@ -145,6 +170,4 @@ func main() {
 	} else {
 		outResult(args.AsString("output"), buffer)
 	}
-
-	outResult(*output, buffer)
 }
