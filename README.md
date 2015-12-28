@@ -10,7 +10,15 @@ go get github.com/juno-lab/junocfg
 ## Usage
 
 ```
-$ junocfg -t config.yaml.tmpl -c settings.dev.yaml -o config.yaml
+$ junocfg -t config.yaml.tmpl -i settings.dev.yaml -o config.yaml
 
 $ cat settings.dev.yaml | junocfg -t config.yaml.tmpl > config.yaml
+```
+
+## Check
+
+```
+$ junocfg --check -t config.yaml.tmpl -i settings.dev.yaml -o config.yaml
+
+$ cat settings.dev.yaml | junocfg --check -t config.yaml.tmpl > config.yaml
 ```
