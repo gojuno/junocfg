@@ -141,11 +141,6 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	if args.AsFlag("check") {
-		log.Printf("Data check...\n")
-		tmpl = tmpl.Option("missingkey=error")
-	}
-
 	buffer := bytes.NewBuffer([]byte{})
 	if err := tmpl.Execute(buffer, cfg); err != nil {
 		log.Fatalf("failed to render template [%s]\n[%s]\n", err, cfg)
