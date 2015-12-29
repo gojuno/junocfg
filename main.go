@@ -162,7 +162,6 @@ func main() {
 		}
 		// TODO! check output
 		// find <no value> substring
-	} else {
-		outResult(args.AsString("output"), buffer)
 	}
+	outResult(args.AsString("output"), buffer)
 }
