@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -16,14 +15,6 @@ import (
 
 	"github.com/juno-lab/argparse"
 )
-
-func loadFile(filename string) ([]byte, error) {
-	content, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return []byte(""), err
-	}
-	return content, nil
-}
 
 func getTemplate(filename string) (*template.Template, error) {
 	content, err := loadFile(filename)
@@ -37,39 +28,16 @@ func getTemplate(filename string) (*template.Template, error) {
 	return tmpl, nil
 }
 
-func outMode(mode os.FileMode) {
-	flags := map[os.FileMode]string{
-		os.ModeDir:        "os.ModeDir",
-		os.ModeAppend:     "os.ModeAppend",
-		os.ModeExclusive:  "os.ModeExclusive",
-		os.ModeTemporary:  "os.ModeTemporary",
-		os.ModeSymlink:    "os.ModeSymlink",
-		os.ModeDevice:     "os.ModeDevice",
-		os.ModeNamedPipe:  "os.ModeNamedPipe",
-		os.ModeSocket:     "os.ModeSocket",
-		os.ModeSetuid:     "os.ModeSetuid",
-		os.ModeSetgid:     "os.ModeSetgid",
-		os.ModeCharDevice: "os.ModeCharDevice",
-		os.ModeSticky:     "os.ModeSticky",
-	}
+func getConfig(filenames string) (map[string]interface{}, error) {
+	buffers := []*bytes.Buffer{}
 
-	log.Printf("info: %032b", mode)
-	for flag, name := range flags {
-		if (mode & flag) == flag {
-			log.Printf("%s\n", name)
-		}
-	}
-}
-
-func getConfig(filename string) (map[string]interface{}, error) {
-	buffer := bytes.NewBuffer([]byte{})
-
-	if filename == "<STDIN>" {
+	if filenames == "<STDIN>" {
 		info, _ := os.Stdin.Stat()
 		// outMode(info.Mode())
 		if (info.Mode() & os.ModeCharDevice) == os.ModeCharDevice {
 			return nil, errors.New(fmt.Sprintf("The command is intended to work with pipes\n"))
 		} else {
+			buffer := bytes.NewBuffer([]byte{})
 			reader := bufio.NewReader(os.Stdin)
 			for {
 				input, err := reader.ReadString('\n')
@@ -78,20 +46,30 @@ func getConfig(filename string) (map[string]interface{}, error) {
 				}
 				buffer.WriteString(input)
 			}
+			buffers = append(buffers, buffer)
 		}
 	} else {
-		content, err := loadFile(filename)
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Config file load error: [%v]\n", err))
+		for _, filename := range strings.Split(filenames, ",") {
+			buffer := bytes.NewBuffer([]byte{})
+			content, err := loadFile(filename)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Config file load error: [%v]\n", err))
+			}
+			buffer.Write(content)
+			buffers = append(buffers, buffer)
 		}
-		buffer.Write(content)
 	}
 
-	cfg := map[string]interface{}{}
-	if err := yaml.Unmarshal(buffer.Bytes(), &cfg); err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not parse YAML file: %s\n", err))
+	config := map[string]interface{}{}
+	for _, buffer := range buffers {
+		cfg := map[string]interface{}{}
+		if err := yaml.Unmarshal(buffer.Bytes(), &cfg); err != nil {
+			return nil, errors.New(fmt.Sprintf("Could not parse YAML file: %s\n", err))
+		}
+		config = mergeMaps(config, cfg)
 	}
-	return cfg, nil
+
+	return config, nil
 }
 
 func outResult(filename string, buffer *bytes.Buffer) {
@@ -110,7 +88,6 @@ func outResult(filename string, buffer *bytes.Buffer) {
 		os.Exit(1)
 	}
 	outputBuffer.Flush()
-
 }
 
 func main() {
@@ -140,18 +117,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	// outDict(cfg)
 
 	buffer := bytes.NewBuffer([]byte{})
 	if err := tmpl.Execute(buffer, cfg); err != nil {
 		log.Fatalf("failed to render template [%s]\n[%s]\n", err, cfg)
 	}
 
+	correct := true
 	if args.AsFlag("check") {
 		strOut := strings.Split(buffer.String(), "\n")
 
 		for posInFile, str := range strOut {
 			if i := strings.Index(str, "<no value>"); i != -1 {
 				fmt.Fprintf(os.Stderr, "<no value> at %s#%d:%s\n", args.AsString("output"), posInFile, str)
+				correct = correct && false
 			}
 		}
 
@@ -159,9 +139,12 @@ func main() {
 		err = yaml.Unmarshal(buffer.Bytes(), &outYaml)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Not valid output yaml: %s", err.Error())
+			correct = correct && false
 		}
-		// TODO! check output
-		// find <no value> substring
+		fmt.Fprintf(os.Stderr, "\n")
 	}
 	outResult(args.AsString("output"), buffer)
+	if !correct {
+		os.Exit(1)
+	}
 }
