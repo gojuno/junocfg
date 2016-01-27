@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -50,9 +51,75 @@ func outDict(dict map[string]interface{}) {
 	fmt.Fprintf(os.Stderr, "data: <!--\n%s\n-->\n", d)
 }
 
-func mergeMaps(dest map[string]interface{}, src map[string]interface{}) map[string]interface{} {
-	for k, v := range src {
-		dest[k] = v
+type cfgItem struct {
+	path  string
+	value interface{}
+}
+
+func appendMap(dest map[string]interface{}, item cfgItem) map[string]interface{} {
+	path := strings.Split(item.path, "/")[1:]
+
+	var cursor interface{}
+	cursor = dest
+
+	for _, p := range path[:len(path)-1] {
+		if ms, ok := cursor.(map[string]interface{}); ok {
+			if _, ok := ms[p]; !ok {
+				ms[p] = map[string]interface{}{}
+			}
+			cursor = ms[p]
+		} else {
+			panic("ms !ok")
+		}
 	}
+	if ms, ok := cursor.(map[string]interface{}); ok {
+		ms[path[len(path)-1]] = item.value
+	} else {
+		panic("ms[p] !ok")
+	}
+
+	return dest
+}
+
+func map2list(src map[interface{}]interface{}, srcPath string, cfg *[]cfgItem) *[]cfgItem {
+	for k, v := range src {
+		key := k.(string)
+		path := srcPath + "/" + key
+
+		var item *cfgItem
+
+		if mi, ok := v.(map[interface{}]interface{}); ok {
+			cfg = map2list(mi, path, cfg)
+		} else if ms, ok := v.(map[string]interface{}); ok {
+			log.Fatalln("map[string]interface{} founded", ms)
+		} else if l, ok := v.([]interface{}); ok {
+			item = &cfgItem{path: path, value: l}
+		} else if s, ok := v.(string); ok {
+			item = &cfgItem{path: path, value: s}
+		} else if i, ok := v.(int); ok {
+			item = &cfgItem{path: path, value: i}
+		} else if b, ok := v.(bool); ok {
+			item = &cfgItem{path: path, value: b}
+		} else {
+			log.Fatalln("??? founded", v)
+		}
+		if item != nil {
+			*cfg = append(*cfg, *item)
+		}
+	}
+	return cfg
+}
+
+func mergeMaps(dest map[string]interface{}, src map[string]interface{}) map[string]interface{} {
+	tmp := map[interface{}]interface{}{}
+	for k, v := range src {
+		tmp[k] = v
+	}
+
+	cfg := map2list(tmp, "", new([]cfgItem))
+	for _, item := range *cfg {
+		dest = appendMap(dest, item)
+	}
+
 	return dest
 }
