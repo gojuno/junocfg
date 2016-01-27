@@ -94,8 +94,9 @@ func main() {
 	parser, _ := argparse.ArgumentParser()
 	parser.AddStringOption("input", "i", "input").Default("<STDIN>")
 	parser.AddStringOption("output", "o", "output").Default("<STDOUT>")
-	parser.AddStringOption("template", "t", "tmpl")
+	parser.AddStringOption("template", "t", "tmpl").Default("--")
 	parser.AddFlagOption("check", "", "check").Default("false").Action(argparse.SET_TRUE)
+	parser.AddFlagOption("merge", "", "merge").Default("false").Action(argparse.SET_TRUE)
 
 	args := parser.ParseArgs()
 
@@ -104,46 +105,60 @@ func main() {
 	// 	os.Exit(1)
 	// }
 
-	var tmpl *template.Template
 	var cfg map[string]interface{}
 	var err error
-
-	tmpl, err = getTemplate(args.AsString("template"))
-	if err != nil {
-		log.Fatal(err.Error())
-	}
 
 	cfg, err = getConfig(args.AsString("input"))
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	// outDict(cfg)
-
-	buffer := bytes.NewBuffer([]byte{})
-	if err := tmpl.Execute(buffer, cfg); err != nil {
-		log.Fatalf("failed to render template [%s]\n[%s]\n", err, cfg)
-	}
 
 	correct := true
-	if args.AsFlag("check") {
-		strOut := strings.Split(buffer.String(), "\n")
+	buffer := bytes.NewBuffer([]byte{})
 
-		for posInFile, str := range strOut {
-			if i := strings.Index(str, "<no value>"); i != -1 {
-				fmt.Fprintf(os.Stderr, "<no value> at %s#%d:%s\n", args.AsString("output"), posInFile, str)
+	if args.AsFlag("merge") {
+		d, err := yaml.Marshal(cfg)
+		if err != nil {
+			log.Fatal(fmt.Sprintf("Could not create YAML file: %s\n", err))
+		}
+		buffer.Write(d)
+	} else {
+		var tmpl *template.Template
+
+		if args.AsString("template") == "--" {
+			log.Fatal("ParseArgs: Field [template(-t|--tmpl)] required")
+		}
+		tmpl, err = getTemplate(args.AsString("template"))
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		if err := tmpl.Execute(buffer, cfg); err != nil {
+			log.Fatalf("failed to render template [%s]\n[%s]\n", err, cfg)
+		}
+
+		if args.AsFlag("check") {
+			strOut := strings.Split(buffer.String(), "\n")
+
+			for posInFile, str := range strOut {
+				if i := strings.Index(str, "<no value>"); i != -1 {
+					fmt.Fprintf(os.Stderr, "<no value> at %s#%d:%s\n", args.AsString("output"), posInFile, str)
+					correct = correct && false
+				}
+			}
+
+			outYaml := map[string]interface{}{}
+			err = yaml.Unmarshal(buffer.Bytes(), &outYaml)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Not valid output yaml: %s", err.Error())
 				correct = correct && false
 			}
+			fmt.Fprintf(os.Stderr, "\n")
 		}
-
-		outYaml := map[string]interface{}{}
-		err = yaml.Unmarshal(buffer.Bytes(), &outYaml)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Not valid output yaml: %s", err.Error())
-			correct = correct && false
-		}
-		fmt.Fprintf(os.Stderr, "\n")
 	}
+
 	outResult(args.AsString("output"), buffer)
+
 	if !correct {
 		os.Exit(1)
 	}

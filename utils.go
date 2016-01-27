@@ -91,7 +91,7 @@ func map2list(src map[interface{}]interface{}, srcPath string, cfg *[]cfgItem) *
 		if mi, ok := v.(map[interface{}]interface{}); ok {
 			cfg = map2list(mi, path, cfg)
 		} else if ms, ok := v.(map[string]interface{}); ok {
-			log.Fatalln("map[string]interface{} founded", ms)
+			log.Fatalf("[%v] founded in [%s]\n", ms, path)
 		} else if l, ok := v.([]interface{}); ok {
 			item = &cfgItem{path: path, value: l}
 		} else if s, ok := v.(string); ok {
@@ -101,7 +101,7 @@ func map2list(src map[interface{}]interface{}, srcPath string, cfg *[]cfgItem) *
 		} else if b, ok := v.(bool); ok {
 			item = &cfgItem{path: path, value: b}
 		} else {
-			log.Fatalln("??? founded", v)
+			log.Fatalf("[%v] founded in [%s]\n", v, path)
 		}
 		if item != nil {
 			*cfg = append(*cfg, *item)
