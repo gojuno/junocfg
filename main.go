@@ -28,6 +28,36 @@ func getTemplate(filename string) (*template.Template, error) {
 	return tmpl, nil
 }
 
+func getYamlTemplate(filename string) (map[string]interface{}, error) {
+	content, err := loadFile(filename)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("Template file load error: [%v]\n", err))
+	}
+
+	tmplYaml := map[string]interface{}{}
+	err = yaml.Unmarshal(content, &tmplYaml)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot unmarshal yaml.tmpl: %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "yaml:\n%s", string(content))
+		log.Fatal("...")
+	}
+	// outYaml := map[string]interface{}{}
+	// err = yaml.Unmarshal(buffer.Bytes(), &outYaml)
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "Cannot unmarshal yaml: %s", err.Error())
+	// 	fmt.Fprintf(os.Stderr, "yaml:\n%s", buffer.String())
+	// 	correct = correct && false
+	// }
+	// if data, err := yaml.Marshal(outYaml); err != nil {
+	// 	fmt.Fprintf(os.Stderr, "Cannot remarshal yaml: %s", err.Error())
+	// 	correct = correct && false
+	// } else {
+	// 	buffer.Reset()
+	// 	buffer.Write(data)
+	// }
+	return tmplYaml, nil
+}
+
 func getConfig(filenames string) (map[string]interface{}, error) {
 	buffers := []*bytes.Buffer{}
 
@@ -72,6 +102,38 @@ func getConfig(filenames string) (map[string]interface{}, error) {
 	return config, nil
 }
 
+func writeStr(buffer *bytes.Buffer, str string) {
+	if strings.TrimSpace(str) != "" {
+		buffer.WriteString(str)
+		buffer.WriteString("\n")
+	}
+}
+
+func preprocessYaml(input *bytes.Buffer) *bytes.Buffer {
+	buffer := bytes.NewBuffer([]byte{})
+
+	ident := ""
+	for _, str := range strings.Split(input.String(), "\n") {
+		if strings.HasSuffix(str, "|") {
+			ident = "|"
+		} else if ident == "|" {
+			count := len(str) - len(strings.TrimLeft(str, " "))
+			// fmt.Println(str, len(str), len(strings.TrimLeft(str, " ")), count)
+			ident = strings.Repeat(" ", count)
+			writeStr(buffer, str)
+			continue
+		} else if ident != "" && (strings.HasPrefix(str, " ") || str == "") {
+			ident = ""
+		} else {
+		}
+		if ident != "|" && ident != "" {
+			buffer.WriteString(ident)
+		}
+		writeStr(buffer, str)
+	}
+	return buffer
+}
+
 func outResult(filename string, buffer *bytes.Buffer) {
 	outputBuffer := bufio.NewWriter(os.Stdout)
 	if filename != "<STDOUT>" {
@@ -95,6 +157,7 @@ func main() {
 	parser.AddStringOption("input", "i", "input").Default("<STDIN>")
 	parser.AddStringOption("output", "o", "output").Default("<STDOUT>")
 	parser.AddStringOption("template", "t", "tmpl").Default("--")
+	parser.AddFlagOption("ini", "", "ini").Default("false").Action(argparse.SET_TRUE)
 	parser.AddFlagOption("check", "", "check").Default("false").Action(argparse.SET_TRUE)
 	parser.AddFlagOption("merge", "", "merge").Default("false").Action(argparse.SET_TRUE)
 
@@ -133,10 +196,25 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
+		// yTmpl, err := getYamlTemplate(args.AsString("template"))
+		// if err != nil {
+		// 	log.Fatal(err.Error(), yTmpl)
+		// }
+
 		if err := tmpl.Execute(buffer, cfg); err != nil {
 			log.Fatalf("failed to render template [%s]\n[%s]\n", err, cfg)
 		}
 
+		buffer = preprocessYaml(buffer)
+
+		// check yaml
+		outYaml := map[string]interface{}{}
+		if err = yaml.Unmarshal(buffer.Bytes(), &outYaml); err != nil {
+			fmt.Fprintf(os.Stderr, "Not valid output yaml: %s\n", err.Error())
+			correct = correct && false
+		}
+
+		// check variables
 		if args.AsFlag("check") {
 			strOut := strings.Split(buffer.String(), "\n")
 
@@ -147,13 +225,6 @@ func main() {
 				}
 			}
 
-			outYaml := map[string]interface{}{}
-			err = yaml.Unmarshal(buffer.Bytes(), &outYaml)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Not valid output yaml: %s", err.Error())
-				correct = correct && false
-			}
-			fmt.Fprintf(os.Stderr, "\n")
 		}
 	}
 
