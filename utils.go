@@ -57,7 +57,7 @@ type cfgItem struct {
 }
 
 func appendMap(dest map[string]interface{}, item cfgItem) map[string]interface{} {
-	path := strings.Split(item.path, "/")[1:]
+	path := strings.Split(item.path, "\t")[1:]
 
 	var cursor interface{}
 	cursor = dest
@@ -84,7 +84,7 @@ func appendMap(dest map[string]interface{}, item cfgItem) map[string]interface{}
 func map2list(src map[interface{}]interface{}, srcPath string, cfg *[]cfgItem) *[]cfgItem {
 	for k, v := range src {
 		key := k.(string)
-		path := srcPath + "/" + key
+		path := srcPath + "\t" + key
 
 		var item *cfgItem
 
