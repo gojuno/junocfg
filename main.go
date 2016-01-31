@@ -161,7 +161,7 @@ func main() {
 	parser.AddFlagOption("check", "", "check").Default("false").Action(argparse.SET_TRUE)
 	parser.AddFlagOption("merge", "", "merge").Default("false").Action(argparse.SET_TRUE)
 
-	args := parser.ParseArgs()
+	args := parser.Parse()
 
 	// if *tmplFile == "" {
 	// 	fmt.Fprintf(os.Stderr, "template (-t) file required\n")
