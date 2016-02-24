@@ -87,22 +87,16 @@ func map2list(src map[interface{}]interface{}, srcPath string, cfg *[]cfgItem) *
 		path := srcPath + "\t" + key
 
 		var item *cfgItem
-
-		if mi, ok := v.(map[interface{}]interface{}); ok {
-			cfg = map2list(mi, path, cfg)
-		} else if ms, ok := v.(map[string]interface{}); ok {
-			log.Fatalf("[%v] founded in [%s]\n", ms, path)
-		} else if l, ok := v.([]interface{}); ok {
-			item = &cfgItem{path: path, value: l}
-		} else if s, ok := v.(string); ok {
-			item = &cfgItem{path: path, value: s}
-		} else if i, ok := v.(int); ok {
-			item = &cfgItem{path: path, value: i}
-		} else if b, ok := v.(bool); ok {
-			item = &cfgItem{path: path, value: b}
-		} else {
-			log.Fatalf("[%v] founded in [%s]\n", v, path)
+		switch t := v.(type) {
+		case map[interface{}]interface{}:
+			cfg = map2list(t, path, cfg)
+		//feel free to add as many supported types if you want
+		case []interface{}, string, int, int64, bool, float64, float32:
+			item = &cfgItem{path: path, value: t}
+		default:
+			log.Fatalf("map2list: unexpected type of the key %q with value %v found in yaml file\n", strings.Replace(path, "\t", ".", -1), v)
 		}
+
 		if item != nil {
 			*cfg = append(*cfg, *item)
 		}
