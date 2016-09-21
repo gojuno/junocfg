@@ -5,7 +5,7 @@ Template based config  generator
 ## Installation
 
 ```
-go get github.com/juno-lab/junocfg
+go get github.com/gojuno/junocfg
 ```
 
 ## Usage
