@@ -1,4 +1,4 @@
-# junocfg
+# junocfg [![GoDoc](https://godoc.org/github.com/gojuno/junocfg?status.svg)](http://godoc.org/github.com/gojuno/junocfg) [![Build Status](https://travis-ci.org/gojuno/junocfg.svg?branch=master)](https://travis-ci.org/gojuno/junocfg)
 
 Template based config  generator
 
