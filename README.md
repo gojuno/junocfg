@@ -5,7 +5,7 @@ Template based config  generator
 ## Installation
 
 ```
-go get github.com/gojuno/junocfg
+go get github.com/gojuno/junocfg/...
 ```
 
 ## Usage
@@ -43,6 +43,13 @@ $ junocfg --merge -i public.yaml,secure.yaml > settings.yaml
 $ junocfg --check -t config.yaml.tmpl -i settings.dev.yaml -o config.yaml
 
 $ cat settings.dev.yaml | junocfg --check -t config.yaml.tmpl > config.yaml
+```
+
+### check tmpl
+
+```
+$ junocfg --check-tmpl -t config.yaml.tmpl
+$ cat config.yaml.tmpl | junocfg --check-tmpl
 ```
 
 ### full pipiline
