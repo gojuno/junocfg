@@ -1,0 +1,7 @@
+a: aaa
+b:
+  bb:
+    - b.bb.1
+    - b.bb.2
+    - b.bb.3
+c: ccc

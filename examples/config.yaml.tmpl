@@ -15,5 +15,5 @@ proxy:
       type: {{$data.type}}
       level: {{$data.level}}
       {{if $data.properties}}properties:{{range $name, $value := $data.properties}}
-        {{$name}}: {{$value}}{{end}}{{end}}
+        {{$name}}: "{{$value}}"{{end}}{{end}}
     {{end}}

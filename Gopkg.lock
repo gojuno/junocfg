@@ -2,14 +2,20 @@
 
 
 [[projects]]
-  branch = "v2"
+  branch = "master"
+  name = "github.com/mguzelevich/go.log"
+  packages = ["."]
+  revision = "e48db90effd97196ed52e64059b8729fea3b1266"
+
+[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+  revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
+  version = "v2.1.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c39e9119cc91080f9178c39214d6ca06156205351dec2523319554ee3669537e"
+  inputs-digest = "21e410404b08131374ae40d7c7979224d601dc3d0455acfdb06b5045bb946b26"
   solver-name = "gps-cdcl"
   solver-version = 1
