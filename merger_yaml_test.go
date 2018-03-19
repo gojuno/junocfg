@@ -37,7 +37,7 @@ var yamlTests = []struct {
 			[]byte(`{"a":"aaa","b":{"b1":"1111","b2":"1111"}}`),
 			[]byte(`{"b":{"b2":"2222","b3":"3333"},"c": "ccc"}`),
 		},
-		[]byte("a: aaa\nb:\n  bb: bbbb\nc: ccc\n"),
+		[]byte("a: aaa\nb:\n  b1: \"1111\"\n  b2: \"2222\"\n  b3: \"3333\"\nc: ccc\n"),
 	},
 }
 

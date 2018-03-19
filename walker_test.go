@@ -3,63 +3,47 @@ package junocfg
 // https://golang.org/pkg/testing/
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 )
 
-/*
-func Test() {
-	f := func(path []string, value interface{}) error {
-		fmt.Printf("%v -> %v\n", path, value)
-		return nil
-	}
-
-	fmt.Printf("\n=== TEST 1\n")
-	src := map[string]interface{}{}
-	fmt.Printf("src %v\n", src)
-	dst, err := setValue(src, []string{"a", "b", "c"}, "!!!!")
-	fmt.Printf("dst %v\n", dst)
-	if err != nil {
-		fmt.Printf("ERR %v\n", err)
-	}
-	walker(dst, []string{}, f)
-
-	fmt.Printf("\n=== TEST 2\n")
-	src = map[string]interface{}{
-		"a": "a",
-		"b": []string{"aa", "aa", "aa", "aa"},
-		"c": map[string]interface{}{
-			"a": "a",
-			"b": []string{"aa", "aa", "aa", "aa"},
-		},
-		"d": "a",
-	}
-	fmt.Printf("src %v\n", src)
-	dst, err = setValue(src, []string{"a", "c"}, "!!!!")
-	fmt.Printf("dst %v\n", dst)
-	if err != nil {
-		fmt.Printf("ERR %v\n", err)
-	}
-	walker(dst, []string{}, f)
-
-	fmt.Printf("\n=== TEST 3\n")
-	src = map[string]interface{}{
-		"a": "a",
-		"b": []string{"aa", "aa", "aa", "aa"},
-		"c": map[string]interface{}{
-			"a": "a",
-			"b": []string{"aa", "aa", "aa", "aa"},
-		},
-		"d": "a",
-	}
-	fmt.Printf("src %v\n", src)
-	dst, err = setValue(src, []string{"c", "a"}, "!!!!")
-	fmt.Printf("dst %v\n", dst)
-	if err != nil {
-		fmt.Printf("ERR %v\n", err)
-	}
-	walker(dst, []string{}, f)
+var walkTests = []struct {
+	in  []byte
+	out string
+}{
+	{
+		[]byte(`{"a": "aaa"}`),
+		"[{[a] aaa}]",
+	},
+	{
+		[]byte(`{"a":"a","b": "b","c": "c"}`),
+		"[{[a] a} {[b] b} {[c] c}]",
+	},
+	{
+		[]byte(`{"a":{"b":{"c":"d"}}}`),
+		"[{[a b c] d}]",
+	},
 }
-*/
+
 func TestWalker(t *testing.T) {
+	for i, td := range walkTests {
+		data := map[string]interface{}{}
+		err := json.Unmarshal(td.in, &data)
+		if err != nil {
+			t.Errorf("For %d input data error %v", i, td.in)
+		}
+		d, err := walk(data)
+		if err != nil {
+			t.Errorf("For %d walk error %v", i, err)
+		}
+		out := fmt.Sprintf("%v", d)
+		if out != td.out {
+			t.Errorf("For %d error", i)
+			t.Logf("\tin: %v", data)
+			t.Logf("\texpected: %v", td.out)
+			t.Logf("\tgot: %v", out)
+		}
+	}
 
 }
