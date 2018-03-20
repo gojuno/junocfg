@@ -18,6 +18,7 @@ import (
 var (
 	checkTmpl bool
 	merge     bool
+	verbose   bool
 
 	input  string
 	output string
@@ -27,6 +28,7 @@ var (
 func init() {
 	flag.BoolVar(&checkTmpl, "check-tmpl", false, "check tmpl")
 	flag.BoolVar(&merge, "merge", false, "merge")
+	flag.BoolVar(&verbose, "v", false, "verbose")
 
 	flag.StringVar(&input, "i", "", "input")
 	flag.StringVar(&input, "input", "", "input")
@@ -65,9 +67,10 @@ func main() {
 
 	switch {
 	case checkTmpl:
-		// fmt.Fprintf(os.Stderr, "mode: check-tmpl\n")
 		in, err := getInput(tmpl)
-		log.Debug.Printf(in.dump())
+		if verbose {
+			log.Debug.Printf(in.dump())
+		}
 		checkFatal("Error %v", in.err)
 		_, err = junocfg.CheckTemplate(in.input[0])
 		checkFatal("check tmpl error %v", err)
@@ -76,7 +79,9 @@ func main() {
 		in, err := getInput(input)
 		checkFatal("Error %v", err)
 		out, err := junocfg.MergeYamls(in.input)
-		// in.dump()
+		if verbose {
+			log.Debug.Printf(in.dump())
+		}
 		checkFatal("Error %v", in.err)
 		outResult(output, out)
 	default:
