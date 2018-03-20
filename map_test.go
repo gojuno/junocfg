@@ -47,25 +47,6 @@ var setTests = []struct {
 	},
 }
 
-/*
-func Test() {
-	data := []struct {
-	}{
-	}
-	for i, d := range data {
-		fmt.Printf("\n=== TEST %d\n", i)
-		fmt.Printf("src %v\n", d.src)
-		err := setValue(d.src, d.key, d.value)
-		fmt.Printf("dst %v\n", d.src)
-		if err != nil {
-			fmt.Printf("ERR %v\n", err)
-		}
-		d, err := walk(d.src)
-		fmt.Printf("walker: %v\n%v\n", d, err)
-	}
-}
-
-*/
 func TestSetValue(t *testing.T) {
 	for i, d := range setTests {
 		err := setValue(d.src, d.key, d.value)
@@ -94,4 +75,23 @@ func TestMergeMaps(t *testing.T) {
 	// if err != nil {
 	// 	t.Error(err)
 	// }
+}
+
+func TestMutate(t *testing.T) {
+	in := map[string]interface{}{
+		"a": "a",
+		"b": []string{"aa", "aa", "aa", "aa"},
+		"c": map[string]interface{}{
+			"a": "a",
+			"b": []string{"aa", "aa", "aa", "aa"},
+		},
+		"d": "a",
+	}
+	t.Logf("in %v", in)
+	m, err := mutate(in)
+	t.Logf("m %v", m)
+	t.Error(err)
+	if err != nil {
+		t.Error(err)
+	}
 }
