@@ -36,6 +36,17 @@ func init() {
 	flag.StringVar(&tmpl, "template", "", "template")
 }
 
+func checkFatal(errStr string, err error) {
+	if err != nil {
+		log.Stderr.Printf("ARGS: checkTmpl: [%v] merge: [%v] input: [%v] output: [%v] tmpl: [%v]\n",
+			checkTmpl, merge,
+			input, output, tmpl,
+		)
+		log.Stderr.Printf(errStr, err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	// junocfg.Test()
 	// os.Exit(1)
@@ -52,78 +63,49 @@ func main() {
 	log.Stdout = stllog.New(os.Stdout, "", 0)
 	log.Stderr = stllog.New(os.Stderr, "", 0)
 
-	success := true
 	switch {
 	case checkTmpl:
 		// fmt.Fprintf(os.Stderr, "mode: check-tmpl\n")
 		in, err := getInput(tmpl)
 		log.Debug.Printf(in.dump())
-		if err != nil {
-			fmt.Printf("Error %v", in.err)
-			success = false
-		} else if _, err := junocfg.CheckTemplate(in.input[0]); err != nil {
-			fmt.Printf("check tmpl error %v", err)
-			success = false
-		}
+		checkFatal("Error %v", in.err)
+		_, err = junocfg.CheckTemplate(in.input[0])
+		checkFatal("check tmpl error %v", err)
 	case merge:
 		// fmt.Fprintf(os.Stderr, "mode: merge\n")
 		in, err := getInput(input)
-		if err != nil {
-			fmt.Printf("Error %v", in.err)
-			success = false
-		}
+		checkFatal("Error %v", err)
 		out, err := junocfg.MergeYamls(in.input)
 		// in.dump()
-		if err != nil {
-			fmt.Printf("Error %v", in.err)
-			success = false
-		}
+		checkFatal("Error %v", in.err)
 		outResult(output, out)
 	default:
 		// fmt.Fprintf(os.Stderr, "mode: default\n")
 		// default: generate config file from input + template
 		if tmpl == "" {
-			log.Error.Printf("Field [template(-t|--tmpl)] required")
-			os.Exit(1)
+			checkFatal("%v", fmt.Errorf("Field [template(-t|--tmpl)] required"))
 		}
 
 		tmplSrc, err := getInput(tmpl)
-		if err != nil {
-			log.Error.Printf("Error %v", tmplSrc.err)
-			os.Exit(1)
-		}
+		checkFatal("Error %v", tmplSrc.err)
+
 		template, err := junocfg.CheckTemplate(tmplSrc.input[0])
-		if err != nil {
-			log.Error.Printf("check tmpl error %v", err)
-			os.Exit(1)
-		}
+		checkFatal("check tmpl error %v", err)
 
 		tmplSrc.dump()
 
 		in, err := getInput(input)
-		if err != nil {
-			log.Error.Printf("error %v", in.err)
-			os.Exit(1)
-		}
-		in.dump()
+		checkFatal("error %v", in.err)
+		// in.dump()
 		settingsData, err := junocfg.MergeYamls(in.input)
-		if err != nil {
-			log.Error.Printf("error %v", err)
-			os.Exit(1)
-		}
+		checkFatal("error %v", err)
 
 		settings, err := junocfg.UnmarshalYaml(settingsData)
-		if err != nil {
-			log.Error.Printf("error %v", err)
-			os.Exit(1)
-		}
+		checkFatal("error %v", err)
 
 		buffer := bytes.NewBuffer([]byte{})
 
-		if err := template.Execute(buffer, settings); err != nil {
-			log.Error.Printf("failed to render template [%s]\n[%s]\n", err, settings)
-			os.Exit(1)
-		}
+		checkFatal("failed to render template [%s]\n", template.Execute(buffer, settings))
 
 		buffer = junocfg.PreprocessYaml(buffer)
 		// check yaml
@@ -141,8 +123,5 @@ func main() {
 			}
 		}
 		junocfg.OutResult(output, buffer)
-	}
-	if !success {
-		os.Exit(1)
 	}
 }

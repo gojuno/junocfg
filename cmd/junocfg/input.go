@@ -3,14 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
-	// "errors"
 	"fmt"
-	//"io"
 	"io/ioutil"
-	//"log"
 	"os"
 	"strings"
-	//	"github.com/gojuno/junocfg"
+
+	"github.com/mguzelevich/go.log"
 )
 
 type inputData struct {
@@ -45,9 +43,11 @@ func (i *inputData) readFile(filename string) {
 }
 
 func (i *inputData) readStdin() {
-	if fi, err := os.Stdin.Stat(); err != nil || fi.Mode()&os.ModeNamedPipe == 0 {
-		panic(fmt.Errorf("cannt check stdin stat [%v] or incorrect mode: [%v]\n", err, fi.Mode()))
-	} else {
+	info, err := os.Stdin.Stat()
+	if err != nil || (info.Mode()&os.ModeCharDevice) == os.ModeCharDevice {
+		outMode(info.Mode())
+		panic(fmt.Errorf("cannt check stdin stat [%v] or incorrect mode: [%v]\n", err, info.Mode()))
+	} else if info.Size() > 0 {
 		scanner := bufio.NewScanner(os.Stdin)
 		buffer := bytes.NewBuffer([]byte{})
 
@@ -56,6 +56,32 @@ func (i *inputData) readStdin() {
 			buffer.Write([]byte(fmt.Sprintf("%s\n", line)))
 		}
 		i.input = append(i.input, buffer.Bytes())
+	} else {
+		panic(fmt.Errorf("empty STDIN"))
+	}
+}
+
+func outMode(mode os.FileMode) {
+	flags := map[os.FileMode]string{
+		os.ModeDir:        "os.ModeDir",
+		os.ModeAppend:     "os.ModeAppend",
+		os.ModeExclusive:  "os.ModeExclusive",
+		os.ModeTemporary:  "os.ModeTemporary",
+		os.ModeSymlink:    "os.ModeSymlink",
+		os.ModeDevice:     "os.ModeDevice",
+		os.ModeNamedPipe:  "os.ModeNamedPipe",
+		os.ModeSocket:     "os.ModeSocket",
+		os.ModeSetuid:     "os.ModeSetuid",
+		os.ModeSetgid:     "os.ModeSetgid",
+		os.ModeCharDevice: "os.ModeCharDevice",
+		os.ModeSticky:     "os.ModeSticky",
+	}
+
+	log.Stderr.Printf("info: %032b", mode)
+	for flag, name := range flags {
+		if (mode & flag) == flag {
+			log.Stderr.Printf("%s\n", name)
+		}
 	}
 }
 
@@ -67,7 +93,7 @@ func initInput() *inputData {
 
 func getInput(inputString string) (*inputData, error) {
 	in := initInput()
-	if input != "" {
+	if inputString != "" {
 		in.readFiles(inputString)
 	} else {
 		in.readStdin()

@@ -50,27 +50,3 @@ func OutResult(filename string, buffer *bytes.Buffer) {
 	}
 	outputBuffer.Flush()
 }
-
-func outMode(mode os.FileMode) {
-	flags := map[os.FileMode]string{
-		os.ModeDir:        "os.ModeDir",
-		os.ModeAppend:     "os.ModeAppend",
-		os.ModeExclusive:  "os.ModeExclusive",
-		os.ModeTemporary:  "os.ModeTemporary",
-		os.ModeSymlink:    "os.ModeSymlink",
-		os.ModeDevice:     "os.ModeDevice",
-		os.ModeNamedPipe:  "os.ModeNamedPipe",
-		os.ModeSocket:     "os.ModeSocket",
-		os.ModeSetuid:     "os.ModeSetuid",
-		os.ModeSetgid:     "os.ModeSetgid",
-		os.ModeCharDevice: "os.ModeCharDevice",
-		os.ModeSticky:     "os.ModeSticky",
-	}
-
-	log.Printf("info: %032b", mode)
-	for flag, name := range flags {
-		if (mode & flag) == flag {
-			log.Printf("%s\n", name)
-		}
-	}
-}
