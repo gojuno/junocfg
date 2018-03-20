@@ -7,25 +7,39 @@ import (
 	"strings"
 )
 
-func MergeYamls(data [][]byte) ([]byte, error) {
-	result := map[string]interface{}{}
+func Yamls2Maps(data [][]byte) ([]map[string]interface{}, error) {
+	result := []map[string]interface{}{}
 
 	for i, d := range data {
-		tmpMap := map[string]interface{}{}
-		err := yaml.Unmarshal(d, &tmpMap)
+		yamlmap, err := Yaml2Map(d)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal %d batch error: %v", i, err)
 		}
-		if err := mergeMaps(tmpMap, result); err != nil {
-			return nil, fmt.Errorf("merge map error: %v", err)
-		}
+		result = append(result, yamlmap)
+	}
+	return result, nil
+}
+
+func Yaml2Map(data []byte) (map[string]interface{}, error) {
+	rawYamlMap := map[string]interface{}{}
+	err := yaml.Unmarshal(data, &rawYamlMap)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal error: %v", err)
 	}
 
-	out, err := yaml.Marshal(result)
+	// convert map[interface{}]interface{} -> map[string]interface{}
+	tmpMap := map[string]interface{}{}
+	if err := catMaps(rawYamlMap, tmpMap); err != nil {
+		return nil, fmt.Errorf("merge map error: %v", err)
+	}
+	return tmpMap, nil
+}
+
+func Map2Yaml(data map[string]interface{}) ([]byte, error) {
+	out, err := yaml.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %v", err)
 	}
-
 	return out, err
 }
 
@@ -63,4 +77,11 @@ func PreprocessYaml(input *bytes.Buffer) *bytes.Buffer {
 		writeStr(buffer, str)
 	}
 	return buffer
+}
+
+func writeStr(buffer *bytes.Buffer, str string) {
+	if strings.TrimSpace(str) != "" {
+		buffer.WriteString(str)
+		buffer.WriteString("\n")
+	}
 }

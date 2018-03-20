@@ -16,13 +16,11 @@ type inputData struct {
 	err   error
 }
 
-func (i *inputData) dump() string {
-	buffer := bytes.NewBuffer([]byte{})
+func (i *inputData) dump() {
 	for idx, d := range i.input {
-		buffer.WriteString(fmt.Sprintf("=== %d ===\n%v\n", idx, string(d)))
+		log.Debug.Printf("=== %d ===\n%v\n", idx, string(d))
 	}
-	buffer.WriteString(fmt.Sprintf("err: %v", i.err))
-	return buffer.String()
+	log.Debug.Printf("err: %v", i.err)
 }
 
 func (i *inputData) readFiles(filenames string) {
@@ -44,10 +42,14 @@ func (i *inputData) readFile(filename string) {
 
 func (i *inputData) readStdin() {
 	info, err := os.Stdin.Stat()
-	if err != nil || (info.Mode()&os.ModeCharDevice) == os.ModeCharDevice {
+	if err != nil {
+		panic(err)
+	}
+	// (info.Mode()&os.ModeCharDevice) == os.ModeCharDevice || info.Size() <= 0
+	if (info.Mode()&os.ModeCharDevice) != 0 && (info.Mode()&os.ModeNamedPipe) != 0 {
 		outMode(info.Mode())
-		panic(fmt.Errorf("cannt check stdin stat [%v] or incorrect mode: [%v]\n", err, info.Mode()))
-	} else if info.Size() > 0 {
+		panic(fmt.Errorf("cannt check stdin stat [%v] / incorrect mode: [%v] / empty stdin %d\n", err, info.Mode(), info.Size()))
+	} else {
 		scanner := bufio.NewScanner(os.Stdin)
 		buffer := bytes.NewBuffer([]byte{})
 
@@ -56,8 +58,6 @@ func (i *inputData) readStdin() {
 			buffer.Write([]byte(fmt.Sprintf("%s\n", line)))
 		}
 		i.input = append(i.input, buffer.Bytes())
-	} else {
-		panic(fmt.Errorf("empty STDIN"))
 	}
 }
 

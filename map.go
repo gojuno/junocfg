@@ -32,7 +32,7 @@ func setValue(src map[string]interface{}, path []string, value interface{}) erro
 	return nil
 }
 
-func mergeMaps(src map[string]interface{}, dst map[string]interface{}) error {
+func catMaps(src map[string]interface{}, dst map[string]interface{}) error {
 	if items, err := walk(src); err != nil {
 		return err
 	} else {
@@ -45,10 +45,10 @@ func mergeMaps(src map[string]interface{}, dst map[string]interface{}) error {
 	return nil
 }
 
-func mergeManyMaps(data []map[string]interface{}) (map[string]interface{}, error) {
+func MergeMaps(data []map[string]interface{}) (map[string]interface{}, error) {
 	dst := map[string]interface{}{}
 	for _, d := range data {
-		if err := mergeMaps(dst, d); err != nil {
+		if err := catMaps(d, dst); err != nil {
 			return nil, err
 		}
 	}

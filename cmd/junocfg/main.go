@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	stllog "log"
 	"os"
 	"strings"
@@ -18,7 +18,9 @@ import (
 var (
 	checkTmpl bool
 	merge     bool
-	verbose   bool
+	yaml2json bool
+
+	verbose bool
 
 	input  string
 	output string
@@ -29,6 +31,7 @@ func init() {
 	flag.BoolVar(&checkTmpl, "check-tmpl", false, "check tmpl")
 	flag.BoolVar(&merge, "merge", false, "merge")
 	flag.BoolVar(&verbose, "v", false, "verbose")
+	flag.BoolVar(&yaml2json, "yaml2json", false, "yaml2json")
 
 	flag.StringVar(&input, "i", "", "input")
 	flag.StringVar(&input, "input", "", "input")
@@ -40,8 +43,8 @@ func init() {
 
 func checkFatal(errStr string, err error) {
 	if err != nil {
-		log.Stderr.Printf("ARGS: checkTmpl: [%v] merge: [%v] input: [%v] output: [%v] tmpl: [%v]\n",
-			checkTmpl, merge,
+		log.Stderr.Printf("ARGS: checkTmpl: [%v] merge: [%v] yaml2json: [%v] verbose: [%v] input: [%v] output: [%v] tmpl: [%v]\n",
+			checkTmpl, merge, yaml2json, verbose,
 			input, output, tmpl,
 		)
 		log.Stderr.Printf(errStr, err)
@@ -49,41 +52,68 @@ func checkFatal(errStr string, err error) {
 	}
 }
 
-func main() {
-	// junocfg.Test()
-	// os.Exit(1)
-
-	flag.Parse()
-
-	log.InitLoggers(&log.Logger{
+func initLogger() {
+	logger := &log.Logger{
 		os.Stderr, // ioutil.Discard,
 		os.Stderr, // ioutil.Discard,
 		os.Stderr,
 		os.Stderr,
 		os.Stderr,
-	})
+	}
+	log.InitLoggers(logger)
 	log.Stdout = stllog.New(os.Stdout, "", 0)
 	log.Stderr = stllog.New(os.Stderr, "", 0)
 
+	if !verbose {
+		log.Debug = stllog.New(ioutil.Discard, "", 0)
+	}
+}
+
+func main() {
+	flag.Parse()
+	initLogger()
+
+	var settingsInput *inputData
+	var tmplInput *inputData
+	var err error
+
+	if !checkTmpl {
+		settingsInput, err = getInput(input)
+		settingsInput.dump()
+		checkFatal("Error %v", err)
+	}
+	if !yaml2json && !merge {
+		tmplInput, err = getInput(tmpl)
+		tmplInput.dump()
+		checkFatal("Error %v", err)
+	}
+
 	switch {
 	case checkTmpl:
-		in, err := getInput(tmpl)
-		if verbose {
-			log.Debug.Printf(in.dump())
-		}
-		checkFatal("Error %v", in.err)
-		_, err = junocfg.CheckTemplate(in.input[0])
+		_, err = junocfg.CheckTemplate(tmplInput.input[0])
 		checkFatal("check tmpl error %v", err)
+	case yaml2json:
+		maps, err := junocfg.Yamls2Maps(settingsInput.input)
+		checkFatal("Yamls2Maps error %v", err)
+
+		resultMap, err := junocfg.MergeMaps(maps)
+		checkFatal("MergeMaps error %v", err)
+
+		out, err := junocfg.Map2Json(resultMap)
+		checkFatal("Map2Json error %v", err)
+
+		outResult(output, string(out))
 	case merge:
-		// fmt.Fprintf(os.Stderr, "mode: merge\n")
-		in, err := getInput(input)
-		checkFatal("Error %v", err)
-		out, err := junocfg.MergeYamls(in.input)
-		if verbose {
-			log.Debug.Printf(in.dump())
-		}
-		checkFatal("Error %v", in.err)
-		outResult(output, out)
+		maps, err := junocfg.Yamls2Maps(settingsInput.input)
+		checkFatal("Yamls2Maps error %v", err)
+
+		resultMap, err := junocfg.MergeMaps(maps)
+		checkFatal("MergeMaps error %v", err)
+
+		out, err := junocfg.Map2Yaml(resultMap)
+		checkFatal("Map2Yaml error %v", err)
+
+		outResult(output, string(out))
 	default:
 		// fmt.Fprintf(os.Stderr, "mode: default\n")
 		// default: generate config file from input + template
@@ -91,42 +121,25 @@ func main() {
 			checkFatal("%v", fmt.Errorf("Field [template(-t|--tmpl)] required"))
 		}
 
-		tmplSrc, err := getInput(tmpl)
-		checkFatal("Error %v", tmplSrc.err)
+		maps, err := junocfg.Yamls2Maps(settingsInput.input)
+		checkFatal("Yamls2Maps error %v", err)
 
-		template, err := junocfg.CheckTemplate(tmplSrc.input[0])
-		checkFatal("check tmpl error %v", err)
+		settingsMap, err := junocfg.MergeMaps(maps)
+		checkFatal("MergeMaps error %v", err)
 
-		tmplSrc.dump()
+		// settings, err := junocfg.Map2Yaml(resultMap)
+		// checkFatal("Map2Yaml error %v", err)
 
-		in, err := getInput(input)
-		checkFatal("error %v", in.err)
-		// in.dump()
-		settingsData, err := junocfg.MergeYamls(in.input)
-		checkFatal("error %v", err)
-
-		settings, err := junocfg.UnmarshalYaml(settingsData)
-		checkFatal("error %v", err)
-
-		buffer := bytes.NewBuffer([]byte{})
-
-		checkFatal("failed to render template [%s]\n", template.Execute(buffer, settings))
-
-		buffer = junocfg.PreprocessYaml(buffer)
-		// check yaml
-		if err = junocfg.CheckYaml(buffer.Bytes()); err != nil {
-			log.Stderr.Printf("Not valid output yaml: %s\n", err.Error())
-			log.Stderr.Printf("%s\n", buffer.Bytes())
-			os.Exit(1)
-		}
+		out, err := junocfg.RenderAndCheckTemplate(tmplInput.input[0], settingsMap)
+		checkFatal("RenderAndCheckTemplate error %v", err)
 
 		// check variables
-		strOut := strings.Split(buffer.String(), "\n")
+		strOut := strings.Split(out, "\n")
 		for posInFile, str := range strOut {
 			if i := strings.Index(str, "<no value>"); i != -1 {
 				log.Stderr.Printf("<no value> at %s#%d:%s\n", output, posInFile, str)
 			}
 		}
-		junocfg.OutResult(output, buffer)
+		outResult(output, out)
 	}
 }

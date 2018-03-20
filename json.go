@@ -22,3 +22,11 @@ func mergeJsons(data [][]byte) ([]byte, error) {
 
 	return out, err
 }
+
+func Map2Json(data map[string]interface{}) ([]byte, error) {
+	out, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %v", err)
+	}
+	return out, err
+}

@@ -47,3 +47,11 @@ func TestWalker(t *testing.T) {
 	}
 
 }
+
+func walkTestHelper(t *testing.T, m map[string]interface{}) string {
+	d, err := walk(m)
+	if err != nil {
+		t.Errorf("walk error %v on %v", err, m)
+	}
+	return fmt.Sprintf("%v", d)
+}
