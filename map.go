@@ -52,42 +52,9 @@ func MergeMaps(data []map[string]interface{}) (map[string]interface{}, error) {
 			return nil, err
 		}
 	}
-	return dst, nil
-}
-
-func mutator(data map[string]interface{}, result map[string]interface{}) error {
-	for key := range data {
-		value := reflect.ValueOf(data[key])
-		switch value.Kind() {
-		case reflect.Map:
-			result[key] = make(map[string]interface{})
-			mutator(data[key].(map[string]interface{}), result[key].(map[string]interface{}))
-		case reflect.Slice:
-			result[key] = []interface{}{}
-			for idx, element := range data[key].([]interface{}) {
-				v := reflect.ValueOf(element)
-				switch v.Kind() {
-				case reflect.Map:
-					e := make(map[string]interface{})
-					mutator(data[key].(map[string]interface{}), result[key].(map[string]interface{}))
-				case reflect.Slice:
-					result[key] = []interface{}{}
-					for idx, v := range data[key].([]interface{}) {
-
-					}
-				default:
-					result[key] = data[key]
-				}
-			}
-		default:
-			result[key] = data[key]
-		}
+	result, err := deinterface(dst)
+	if err != nil {
+		return nil, err
 	}
-	return nil
-}
-
-func mutate(data map[string]interface{}) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
-	mutator(data, result)
 	return result, nil
 }
