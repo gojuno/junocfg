@@ -19,6 +19,7 @@ var (
 	checkTmpl bool
 	merge     bool
 	yaml2json bool
+	json2yaml bool
 
 	verbose bool
 
@@ -32,6 +33,7 @@ func init() {
 	flag.BoolVar(&merge, "merge", false, "merge")
 	flag.BoolVar(&verbose, "v", false, "verbose")
 	flag.BoolVar(&yaml2json, "yaml2json", false, "yaml2json")
+	flag.BoolVar(&json2yaml, "json2yaml", false, "json2yaml")
 
 	flag.StringVar(&input, "i", "", "input")
 	flag.StringVar(&input, "input", "", "input")
@@ -82,7 +84,7 @@ func main() {
 		settingsInput.dump()
 		checkFatal("Error %v", err)
 	}
-	if !yaml2json && !merge {
+	if !yaml2json && !json2yaml && !merge {
 		tmplInput, err = getInput(tmpl)
 		tmplInput.dump()
 		checkFatal("Error %v", err)
@@ -101,6 +103,17 @@ func main() {
 
 		out, err := junocfg.Map2Json(resultMap)
 		checkFatal("Map2Json error %v", err)
+
+		outResult(output, string(out))
+	case json2yaml:
+		maps, err := junocfg.Jsons2Maps(settingsInput.input)
+		checkFatal("Json2Maps error %v", err)
+
+		resultMap, err := junocfg.MergeMaps(maps)
+		checkFatal("MergeMaps error %v", err)
+
+		out, err := junocfg.Map2Yaml(resultMap)
+		checkFatal("Map2Yaml error %v", err)
 
 		outResult(output, string(out))
 	case merge:

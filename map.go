@@ -52,7 +52,11 @@ func MergeMaps(data []map[string]interface{}) (map[string]interface{}, error) {
 			return nil, err
 		}
 	}
-	return dst, nil
+	result, err := deinterface(dst)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func Items2Map(data itemArray) (map[string]interface{}, error) {
