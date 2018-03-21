@@ -26,7 +26,7 @@ var walkTests = []struct {
 	},
 }
 
-func TestWalker(t *testing.T) {
+func Test_walk(t *testing.T) {
 	for i, td := range walkTests {
 		data := map[string]interface{}{}
 		err := json.Unmarshal(td.in, &data)
@@ -46,12 +46,4 @@ func TestWalker(t *testing.T) {
 		}
 	}
 
-}
-
-func walkTestHelper(t *testing.T, m map[string]interface{}) string {
-	d, err := walk(m)
-	if err != nil {
-		t.Errorf("walk error %v on %v", err, m)
-	}
-	return fmt.Sprintf("%v", d)
 }

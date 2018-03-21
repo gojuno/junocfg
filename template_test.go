@@ -31,7 +31,7 @@ b: bbb
 	},
 }
 
-func TestCheckTmpl(t *testing.T) {
+func Test_CheckTemplate(t *testing.T) {
 	for i, tst := range tmplTests {
 		_, err := CheckTemplate(tst.tmpl)
 		if tst.positive && err != nil {
