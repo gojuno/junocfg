@@ -3,43 +3,42 @@ package junocfg
 // https://golang.org/pkg/testing/
 
 import (
-	"bytes"
+	"fmt"
 	"testing"
 )
 
-var jsonTests = []struct {
-	in  [][]byte
-	out []byte
+var json2itemsTests = []struct {
+	in  []byte
+	out string
 }{
 	{
-		[][]byte{
-			[]byte(`{"a": "aaa"}`),
-			[]byte(`{"b": "bbb"}`),
-		},
-		[]byte(`{"a":"aaa","b":"bbb"}`),
+		[]byte(`{"a": "aaa"}`),
+		"[{[a] aaa}]",
 	},
 	{
-		[][]byte{
-			[]byte(`{"a":"aaa","b":"aaa"}`),
-			[]byte(`{"b":"bbb","c": "ccc"}`),
-		},
-		[]byte(`{"a":"aaa","b":"bbb","c":"ccc"}`),
+		[]byte(`{"a":"aaa","b":"aaa"}`),
+		"[{[a] aaa} {[b] aaa}]",
+	},
+	{
+		[]byte(`{"a":"aaa","b":{"bb":"aaa"}}`),
+		"[{[a] aaa} {[b bb] aaa}]",
+	},
+	{
+		[]byte(`{"a":"aaa","b":{"b1":"1111","b2":"1111"}}`),
+		"[{[a] aaa} {[b b1] 1111} {[b b2] 1111}]",
 	},
 }
 
-func TestMergeJsons(t *testing.T) {
-	for i, tst := range jsonTests {
-		if out, err := mergeJsons(tst.in); err != nil {
-			t.Error(
-				"For", i,
-				"got unexpected error", err,
-			)
-		} else if bytes.Compare(out, tst.out) != 0 {
-			t.Error(
-				"For", i,
-				"expect", string(tst.out),
-				"got", string(out),
-			)
+func Test_json2Items(t *testing.T) {
+	for i, tst := range json2itemsTests {
+		ym, err := json2Items(tst.in)
+		if err != nil {
+			t.Errorf("For %d got unexpected error %v", i, err)
+		}
+		out := fmt.Sprintf("%s", ym)
+		if out != tst.out {
+			t.Errorf("For %d expected %v got %v", i, tst.out, out)
 		}
 	}
+
 }

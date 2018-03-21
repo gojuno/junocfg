@@ -47,7 +47,7 @@ var setTests = []struct {
 	},
 }
 
-func TestSetValue(t *testing.T) {
+func Test_setValue(t *testing.T) {
 	for i, d := range setTests {
 		err := setValue(d.src, d.key, d.value)
 		d, err := walk(d.src)
@@ -58,7 +58,7 @@ func TestSetValue(t *testing.T) {
 	}
 }
 
-func TestMergeMaps(t *testing.T) {
+func Test_Items2Map(t *testing.T) {
 	// src := map[string]interface{}{
 	// 	"a": "a",
 	// 	"b": []string{"aa", "aa", "aa", "aa"},

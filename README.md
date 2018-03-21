@@ -45,6 +45,14 @@ merge config data from multiply sources to one dataset and apply it to template
 $ junocfg --merge -i public.yaml,secure.yaml | junocfg -t config.yaml.tmpl > config.yaml
 ```
 
+### convert between json & yaml
+
+```
+echo '{"a":"a","b":["b1","b2","b3","b4"],"c":{"ca":"ca","cb":["cb1","cb2",{"cb3a":"cb3aa"},"cb4",{"cb5a":"cb5aa"}]},"d":"a","e":{"ea":"ea","eb":"eb","ec":"ec"}}' | junocfg --yaml2json | jq '.'
+
+echo '{"a":"a","b":["b1","b2","b3","b4"],"c":{"ca":"ca","cb":["cb1","cb2",{"cb3a":"cb3aa"},"cb4",{"cb5a":"cb5aa"}]},"d":"a","e":{"ea":"ea","eb":"eb","ec":"ec"}}' | junocfg --json2yaml
+```
+
 ## Test
 
 ```
@@ -53,5 +61,5 @@ junocfg --merge -i examples/a.yaml,examples/b.yaml
 junocfg --check-tmpl -t examples/c.tmpl
 cat examples/c.tmpl | junocfg --check-tmpl
 
-
+echo '{"a":"a","b":["b1","b2","b3","b4"],"c":{"ca":"ca","cb":["cb1","cb2",{"cb3a":"cb3aa"},"cb4",{"cb5a":"cb5aa"}]},"d":"a","e":{"ea":"ea","eb":"eb","ec":"ec"}}' | junocfg --yaml2json | jq '.' | junocfg --json2yaml
 ```

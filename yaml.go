@@ -7,8 +7,18 @@ import (
 	"strings"
 )
 
-func Yamls2Items(data [][]byte) (itemArray, error) {
-	result := itemArray{}
+func yaml2Items(data []byte) (ItemArray, error) {
+	yamlMap := map[string]interface{}{}
+	err := yaml.Unmarshal(data, &yamlMap)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal error: %v", err)
+	}
+	items, err := walk(yamlMap)
+	return items, err
+}
+
+func Yamls2Items(data [][]byte) (ItemArray, error) {
+	result := ItemArray{}
 	for i, d := range data {
 		items, err := yaml2Items(d)
 		if err != nil {
@@ -17,16 +27,6 @@ func Yamls2Items(data [][]byte) (itemArray, error) {
 		result = append(result, items...)
 	}
 	return result, nil
-}
-
-func yaml2Items(data []byte) (itemArray, error) {
-	yamlMap := map[string]interface{}{}
-	err := yaml.Unmarshal(data, &yamlMap)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal error: %v", err)
-	}
-	items, err := walk(yamlMap)
-	return items, err
 }
 
 func Map2Yaml(data map[string]interface{}) ([]byte, error) {
@@ -41,14 +41,6 @@ func CheckYaml(data []byte) error {
 	y := map[string]interface{}{}
 	return yaml.Unmarshal(data, &y)
 }
-
-/*
-func UnmarshalYaml(data []byte) (map[string]interface{}, error) {
-	y := map[string]interface{}{}
-	err := yaml.Unmarshal(data, &y)
-	return y, err
-}
-*/
 
 func PreprocessYaml(input *bytes.Buffer) *bytes.Buffer {
 	buffer := bytes.NewBuffer([]byte{})

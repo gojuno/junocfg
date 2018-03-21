@@ -29,11 +29,13 @@ var (
 )
 
 func init() {
-	flag.BoolVar(&checkTmpl, "check-tmpl", false, "check tmpl")
-	flag.BoolVar(&merge, "merge", false, "merge")
 	flag.BoolVar(&verbose, "v", false, "verbose")
-	flag.BoolVar(&yaml2json, "yaml2json", false, "yaml2json")
-	flag.BoolVar(&json2yaml, "json2yaml", false, "json2yaml")
+
+	flag.BoolVar(&checkTmpl, "check-tmpl", false, "check tmpl")
+
+	flag.BoolVar(&merge, "merge", false, "*.yaml -> yaml")
+	flag.BoolVar(&yaml2json, "yaml2json", false, "*.yaml -> json")
+	flag.BoolVar(&json2yaml, "json2yaml", false, "*.json -> yaml")
 
 	flag.StringVar(&input, "i", "", "input")
 	flag.StringVar(&input, "input", "", "input")
@@ -45,8 +47,9 @@ func init() {
 
 func checkFatal(errStr string, err error) {
 	if err != nil {
-		log.Stderr.Printf("ARGS: checkTmpl: [%v] merge: [%v] yaml2json: [%v] verbose: [%v] input: [%v] output: [%v] tmpl: [%v]\n",
-			checkTmpl, merge, yaml2json, verbose,
+		log.Debug.Printf("ARGS:\n\tverbose: [%v]\n\tcheckTmpl: [%v]\n\tmerge: [%v] yaml2json: [%v] json2yaml: [%v]\n\tinput: [%v] output: [%v] tmpl: [%v]\n",
+			verbose,
+			checkTmpl, merge, yaml2json, json2yaml,
 			input, output, tmpl,
 		)
 		log.Stderr.Printf(errStr, err)
@@ -77,8 +80,11 @@ func main() {
 
 	var settingsInput *inputData
 	var tmplInput *inputData
+	var items junocfg.ItemArray
+	var settingsMap map[string]interface{}
 	var err error
 
+	// read input
 	if !checkTmpl {
 		settingsInput, err = getInput(input)
 		settingsInput.dump()
@@ -90,40 +96,39 @@ func main() {
 		checkFatal("Error %v", err)
 	}
 
+	// prepare input - merge multiply files to single map
+	if checkTmpl {
+
+	} else if json2yaml {
+		items, err = junocfg.Jsons2Items(settingsInput.input)
+		checkFatal("Jsons2Items error %v", err)
+	} else { // yaml2json, merge, default
+		items, err = junocfg.Yamls2Items(settingsInput.input)
+		checkFatal("Yamls2Items error %v", err)
+	}
+
+	if !checkTmpl {
+		settingsMap, err = junocfg.Items2Map(items)
+		checkFatal("Items2Map error %v", err)
+	}
+
+	// process
 	switch {
 	case checkTmpl:
 		_, err = junocfg.CheckTemplate(tmplInput.input[0])
 		checkFatal("check tmpl error %v", err)
 	case yaml2json:
-		items, err := junocfg.Yamls2Items(settingsInput.input)
-		checkFatal("Yamls2Items error %v", err)
-
-		resultMap, err := junocfg.Items2Map(maps)
-		checkFatal("MergeMaps error %v", err)
-
-		out, err := junocfg.Map2Json(resultMap)
+		out, err := junocfg.Map2Json(settingsMap)
 		checkFatal("Map2Json error %v", err)
 
 		outResult(output, string(out))
 	case json2yaml:
-		maps, err := junocfg.Jsons2Maps(settingsInput.input)
-		checkFatal("Json2Maps error %v", err)
-
-		resultMap, err := junocfg.MergeMaps(maps)
-		checkFatal("MergeMaps error %v", err)
-
-		out, err := junocfg.Map2Yaml(resultMap)
+		out, err := junocfg.Map2Yaml(settingsMap)
 		checkFatal("Map2Yaml error %v", err)
 
 		outResult(output, string(out))
 	case merge:
-		maps, err := junocfg.Yamls2Maps(settingsInput.input)
-		checkFatal("Yamls2Maps error %v", err)
-
-		resultMap, err := junocfg.MergeMaps(maps)
-		checkFatal("MergeMaps error %v", err)
-
-		out, err := junocfg.Map2Yaml(resultMap)
+		out, err := junocfg.Map2Yaml(settingsMap)
 		checkFatal("Map2Yaml error %v", err)
 
 		outResult(output, string(out))
@@ -133,15 +138,6 @@ func main() {
 		if tmpl == "" {
 			checkFatal("%v", fmt.Errorf("Field [template(-t|--tmpl)] required"))
 		}
-
-		maps, err := junocfg.Yamls2Maps(settingsInput.input)
-		checkFatal("Yamls2Maps error %v", err)
-
-		settingsMap, err := junocfg.MergeMaps(maps)
-		checkFatal("MergeMaps error %v", err)
-
-		// settings, err := junocfg.Map2Yaml(resultMap)
-		// checkFatal("Map2Yaml error %v", err)
 
 		out, err := junocfg.RenderAndCheckTemplate(tmplInput.input[0], settingsMap)
 		checkFatal("RenderAndCheckTemplate error %v", err)
