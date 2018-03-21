@@ -30,7 +30,7 @@ func walker(data map[string]interface{}, path []string, handler func([]string, i
 func walk(data map[string]interface{}) ([]item, error) {
 	result := itemArray{}
 	f := func(path []string, value interface{}) error {
-		result = append(result, item{path, value})
+		result = append(result, item{append([]string{}, path...), value})
 		return nil
 	}
 	walker(data, []string{}, f)
