@@ -76,22 +76,3 @@ func TestMergeMaps(t *testing.T) {
 	// 	t.Error(err)
 	// }
 }
-
-func TestMutate(t *testing.T) {
-	in := map[string]interface{}{
-		"a": "a",
-		"b": []string{"aa", "aa", "aa", "aa"},
-		"c": map[string]interface{}{
-			"a": "a",
-			"b": []string{"aa", "aa", "aa", "aa"},
-		},
-		"d": "a",
-	}
-	t.Logf("in %v", in)
-	m, err := mutate(in)
-	t.Logf("m %v", m)
-	t.Error(err)
-	if err != nil {
-		t.Error(err)
-	}
-}
