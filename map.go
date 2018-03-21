@@ -54,3 +54,13 @@ func MergeMaps(data []map[string]interface{}) (map[string]interface{}, error) {
 	}
 	return dst, nil
 }
+
+func Items2Map(data itemArray) (map[string]interface{}, error) {
+	dst := map[string]interface{}{}
+	for _, d := range data {
+		if err := catMaps(d, dst); err != nil {
+			return nil, err
+		}
+	}
+	return dst, nil
+}

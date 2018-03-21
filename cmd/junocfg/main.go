@@ -93,10 +93,10 @@ func main() {
 		_, err = junocfg.CheckTemplate(tmplInput.input[0])
 		checkFatal("check tmpl error %v", err)
 	case yaml2json:
-		maps, err := junocfg.Yamls2Maps(settingsInput.input)
-		checkFatal("Yamls2Maps error %v", err)
+		items, err := junocfg.Yamls2Items(settingsInput.input)
+		checkFatal("Yamls2Items error %v", err)
 
-		resultMap, err := junocfg.MergeMaps(maps)
+		resultMap, err := junocfg.Items2Map(maps)
 		checkFatal("MergeMaps error %v", err)
 
 		out, err := junocfg.Map2Json(resultMap)
