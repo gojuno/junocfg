@@ -143,11 +143,16 @@ func main() {
 		checkFatal("RenderAndCheckTemplate error %v", err)
 
 		// check variables
+		errorsCount := 0
 		strOut := strings.Split(out, "\n")
 		for posInFile, str := range strOut {
 			if i := strings.Index(str, "<no value>"); i != -1 {
 				log.Stderr.Printf("<no value> at %s#%d:%s\n", output, posInFile, str)
+				errorsCount++
 			}
+		}
+		if errorsCount > 0 {
+			checkFatal("Empty variables %v", fmt.Errorf("%d", errorsCount))
 		}
 		outResult(output, out)
 	}
