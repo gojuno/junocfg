@@ -151,9 +151,9 @@ func main() {
 				errorsCount++
 			}
 		}
+		outResult(output, out)
 		if errorsCount > 0 {
 			checkFatal("Empty variables %v", fmt.Errorf("%d", errorsCount))
 		}
-		outResult(output, out)
 	}
 }
