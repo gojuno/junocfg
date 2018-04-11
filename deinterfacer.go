@@ -5,55 +5,28 @@ import (
 	"reflect"
 )
 
-// convert `map[interface{}]interface{}` to `map[string]interface{}`
-func deinterfacer(data interface{}) (interface{}, error) {
+// deinterfacer converts `map[interface{}]interface{}` to `map[string]interface{}` recursively.
+func deinterfacer(data interface{}) interface{} {
 	value := reflect.ValueOf(data)
 	switch value.Kind() {
 	case reflect.Map:
 		result := make(map[string]interface{})
-		_, ok := data.(map[string]interface{})
-		if !ok {
-			_, ok := data.(map[interface{}]interface{})
-			if !ok {
-				//
-			} else {
-				for key, value := range data.(map[interface{}]interface{}) {
-					if v, err := deinterfacer(value); err != nil {
-						//
-					} else {
-						result[fmt.Sprintf("%s", key)] = v
-					}
-				}
-			}
-		} else {
-			for key, value := range data.(map[string]interface{}) {
-				if v, err := deinterfacer(value); err != nil {
-					//
-				} else {
-					result[fmt.Sprintf("%s", key)] = v
-				}
-			}
+		for _, k := range value.MapKeys() {
+			result[fmt.Sprintf("%v", k)] = deinterfacer(value.MapIndex(k).Interface())
 		}
-		return result, nil
+
+		return result
 	case reflect.Slice:
-		s := reflect.ValueOf(data)
-		result := make([]interface{}, s.Len())
-		for i := 0; i < s.Len(); i++ {
-			value := s.Index(i).Interface()
-			if v, err := deinterfacer(value); err != nil {
-				//
-			} else {
-				result[i] = v
-			}
+		result := make([]interface{}, value.Len())
+		for i := 0; i < value.Len(); i++ {
+			result[i] = deinterfacer(value.Index(i).Interface())
 		}
-		return result, nil
+		return result
 	default:
-		return data, nil
+		return data
 	}
-	return nil, nil
 }
 
-func deinterface(data map[string]interface{}) (map[string]interface{}, error) {
-	result, err := deinterfacer(data)
-	return result.(map[string]interface{}), err
+func deinterface(data map[string]interface{}) map[string]interface{} {
+	return deinterfacer(data).(map[string]interface{})
 }
