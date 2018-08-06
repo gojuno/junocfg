@@ -39,9 +39,6 @@ func Items2Map(items ItemArray) (map[string]interface{}, error) {
 			return nil, err
 		}
 	}
-	result, err := deinterface(dst)
-	if err != nil {
-		return nil, err
-	}
+	result := deinterface(dst)
 	return result, nil
 }
