@@ -1,12 +1,11 @@
 language: go
 
 go:
-  - 1.9
+  - 1.11.x
   - tip
-#
-#install:
-#  - go get github.com/apcera/nats
-#  - go get github.com/aws/aws-sdk-go/aws
-#  - go get github.com/aws/aws-sdk-go/service/sqs
-#  - go get github.com/pborman/uuid
-#  - go get gopkg.in/yaml.v2
+
+env:
+  - GO111MODULE=on
+
+script:
+  - go test ./...
